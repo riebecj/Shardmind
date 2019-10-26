@@ -6,14 +6,14 @@ import re
 import quantumrandom as qr
 
 
-log = logging.getLogger('Shardmind.Main')
+LOGGER = logging.getLogger('Shardmind.Main')
 loop = asyncio.get_event_loop()
 
 
 class Bot(object):
     def __init__(self):
         # token for Discord API (VERY SECRET)
-        self.token = 'NjM3NzE1NTI5ODg4Njk0MzAy.XbSM_g.jMA8AwSQk36j-QNev79adeuDlu0'
+        self.token = 'TOKEN'
         # prefix for all commands to bot
         self.prefix = '!'
         # specific channel lock. Won't reply or post to any other public channel
@@ -41,27 +41,32 @@ class Bot(object):
 
         try:
             await self.client.connect()
-        except discord.ClientException:
-            raise
+        except discord.ClientException as e:
+            LOGGER.error(e)
 
     async def stop(self):
         """Exit"""
+        LOGGER.info('Exiting...')
         await self.client.logout()
 
     async def on_message(self, message):
         """Handle messages as commands"""
         roll_pattern = re.compile("([!])([r])([1-9]\d*)([d])([1-9]\d*)")
         if message.author == self.client.user:  # do not respond to itself
+            LOGGER.info(f'Caught message written by self: {message.content}')
             return
 
         # handle standard commands
         if message.content.startswith(self.prefix):
+            LOGGER.info(f'Parsing message: {message.content}')
             for command, func in self.commands.items():
                 if command in message.content:
+                    LOGGER.info(f'Executing command: {command}')
                     await func(message)
                     return
 
             if roll_pattern.match(message.content) is not None:
+                LOGGER.info('Matched Dice Roll Regex')
                 await self._roll(message)
             else:
                 await message.channel.send(f'Invalid Command: {message.content}')
@@ -92,8 +97,11 @@ class Bot(object):
     async def _roll(self, message):
         die_roll = message.content.split('!r')[-1]
         quantity, die = die_roll.split('d')
+        LOGGER.info(f'Rolling {die} sided die {quantity} times...')
+
         for i in range(1, int(quantity) + 1):
             result = int(qr.get_data()[0] / 65536 * int(die) + 1)
+            LOGGER.info(f'Rolled a {result}')
             if result == 20:
                 await message.channel.send(f"**{message.author.display_name}'s Roll {i}: {result}**")
             else:
