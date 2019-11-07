@@ -1,10 +1,15 @@
-from datetime import datetime
-import logging.config
+#!/usr/bin/env python3
+from Daemon import daemon
+
 import asyncio
 import discord
-import re
 import requests
 
+from datetime import datetime
+import logging.config
+import re
+import sys
+import os
 
 LOGGER = logging.getLogger('Shardmind.Main')
 loop = asyncio.get_event_loop()
@@ -145,10 +150,33 @@ class Bot(object):
                                    f"{' + '.join([str(i) for i in rolls])} = **{sum(rolls)}**")
 
 
-if __name__ == '__main__':
+def main():
     bot = Bot()
 
     asyncio.ensure_future(bot.start())
     loop.run_forever()
 
     loop.close()
+
+
+class Daemonize(daemon):
+    def run(self):
+        main()
+
+
+if __name__ == '__main__':
+    daemon = Daemonize(pidfile=os.getcwd())
+    if len(sys.argv) == 2:
+        if 'start' == sys.argv[1]:
+            daemon.start()
+        elif 'stop' == sys.argv[1]:
+            daemon.stop()
+        elif 'restart' == sys.argv[1]:
+            daemon.restart()
+        else:
+            print("Unknown command")
+            sys.exit(2)
+        sys.exit(0)
+    else:
+        print("usage: %s start|stop|restart" % sys.argv[0])
+        sys.exit(0)
