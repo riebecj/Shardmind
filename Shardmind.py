@@ -30,7 +30,7 @@ class QRNG(object):
 class Bot(object):
     def __init__(self):
         # token for Discord API (VERY SECRET)
-        self.token = ''
+        self.token = self.read_token()
         # prefix for all commands to bot
         self.prefix = '!'
         # specific channel lock. Won't reply or post to any other public channel
@@ -43,6 +43,18 @@ class Bot(object):
         self._start_time = datetime.now()
         # set the bot commands
         self.set_commands()
+
+    def read_token(self):
+        token_file = 'token.txt'
+
+        if not os.path.isfile(token_file):
+            raise FileNotFoundError('Cannot find token file')
+
+        with open('token.txt', 'rt') as tf:
+            token = tf.readline()
+
+        return token
+
 
     def set_commands(self):
         """Set the bot command to the function"""
@@ -152,11 +164,17 @@ class Bot(object):
 
 def main():
     bot = Bot()
+    try:
+        asyncio.ensure_future(bot.start())
+        loop.run_forever()
 
-    asyncio.ensure_future(bot.start())
-    loop.run_forever()
-
-    loop.close()
+        loop.close()
+    except discord.errors.HTTPException as e:
+        print(e)
+        sys.exit(2)
+    except discord.errors.LoginFailure as e:
+        print(e)
+        sys.exit(2)
 
 
 class Daemonize(daemon):
@@ -165,18 +183,19 @@ class Daemonize(daemon):
 
 
 if __name__ == '__main__':
-    daemon = Daemonize(pidfile=os.getcwd())
-    if len(sys.argv) == 2:
-        if 'start' == sys.argv[1]:
-            daemon.start()
-        elif 'stop' == sys.argv[1]:
-            daemon.stop()
-        elif 'restart' == sys.argv[1]:
-            daemon.restart()
-        else:
-            print("Unknown command")
-            sys.exit(2)
-        sys.exit(0)
-    else:
-        print("usage: %s start|stop|restart" % sys.argv[0])
-        sys.exit(0)
+    # daemon = Daemonize(pidfile=os.getcwd())
+    # if len(sys.argv) == 2:
+    #     if 'start' == sys.argv[1]:
+    #         daemon.start()
+    #     elif 'stop' == sys.argv[1]:
+    #         daemon.stop()
+    #     elif 'restart' == sys.argv[1]:
+    #         daemon.restart()
+    #     else:
+    #         print("Unknown command")
+    #         sys.exit(2)
+    #     sys.exit(0)
+    # else:
+    #     print("usage: %s start|stop|restart" % sys.argv[0])
+    #     sys.exit(0)
+    main()
