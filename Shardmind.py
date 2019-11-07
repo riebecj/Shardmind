@@ -13,7 +13,7 @@ loop = asyncio.get_event_loop()
 class Bot(object):
     def __init__(self):
         # token for Discord API (VERY SECRET)
-        self.token = 'TOKEN'
+        self.token = 'NjM3NzE1NTI5ODg4Njk0MzAy.XbTJZA.XYp6pbPofUXwL69otThmgQDyOJ4'
         # prefix for all commands to bot
         self.prefix = '!'
         # specific channel lock. Won't reply or post to any other public channel
@@ -52,6 +52,7 @@ class Bot(object):
     async def on_message(self, message):
         """Handle messages as commands"""
         roll_pattern = re.compile("([!])([r])([1-9]\d*)([d])([1-9]\d*)")
+
         if message.author == self.client.user:  # do not respond to itself
             LOGGER.info(f'Caught message written by self: {message.content}')
             return
@@ -95,17 +96,38 @@ class Bot(object):
         await message.channel.send(msg)
 
     async def _roll(self, message):
+        keep_low = keep_high = False
         die_roll = message.content.split('!r')[-1]
+
+        if die_roll.endswith('kl'):
+            keep_low = True
+        elif die_roll.endswith('kh'):
+            keep_high = True
+
         quantity, die = die_roll.split('d')
+
+        if quantity > 10:
+            await message.channel.send(f"Whoa! {quantity} is too much! I don't have that many dice!")
+            return
+
         LOGGER.info(f'Rolling {die} sided die {quantity} times...')
 
-        for i in range(1, int(quantity) + 1):
+        rolls = []
+        for _ in range(int(quantity)):
             result = int(qr.get_data()[0] / 65536 * int(die) + 1)
             LOGGER.info(f'Rolled a {result}')
-            if result == 20:
-                await message.channel.send(f"**{message.author.display_name}'s Roll {i}: {result}**")
-            else:
-                await message.channel.send(f"{message.author.display_name}'s Roll {i}: {result}")
+            rolls.append(result)
+
+        if keep_high:
+            await message.channel.send(f"{message.author.display_name} rolled a {max(rolls)}! {rolls}")
+            return
+
+        if keep_low:
+            await message.channel.send(f"{message.author.display_name} rolled a {min(rolls)}! {rolls}")
+            return
+
+        await message.channel.send(f"{message.author.display_name} rolled a "
+                                   f"{' + '.join([str(i) for i in rolls])} = **{sum(rolls)}**")
 
 
 if __name__ == '__main__':
