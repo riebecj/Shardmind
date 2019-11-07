@@ -12,6 +12,7 @@ import sys
 import os
 
 LOGGER = logging.getLogger('Shardmind.Main')
+HOME = os.path.dirname(os.path.realpath(__file__))
 loop = asyncio.get_event_loop()
 
 
@@ -45,16 +46,15 @@ class Bot(object):
         self.set_commands()
 
     def read_token(self):
-        token_file = 'token.txt'
+        token_file = os.path.join(HOME, 'token.txt')
 
         if not os.path.isfile(token_file):
             raise FileNotFoundError('Cannot find token file')
 
-        with open('token.txt', 'rt') as tf:
+        with open(token_file, 'rt') as tf:
             token = tf.readline()
 
         return token
-
 
     def set_commands(self):
         """Set the bot command to the function"""
@@ -183,7 +183,7 @@ class Daemonize(daemon):
 
 
 if __name__ == '__main__':
-    daemon = Daemonize(pidfile=os.getcwd())
+    daemon = Daemonize(pidfile=HOME)
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             daemon.start()
