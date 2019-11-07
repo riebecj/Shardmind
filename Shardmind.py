@@ -13,7 +13,7 @@ loop = asyncio.get_event_loop()
 class Bot(object):
     def __init__(self):
         # token for Discord API (VERY SECRET)
-        self.token = 'NjM3NzE1NTI5ODg4Njk0MzAy.XbTJZA.XYp6pbPofUXwL69otThmgQDyOJ4'
+        self.token = ''
         # prefix for all commands to bot
         self.prefix = '!'
         # specific channel lock. Won't reply or post to any other public channel
