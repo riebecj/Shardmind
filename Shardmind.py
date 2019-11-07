@@ -3,11 +3,23 @@ import logging.config
 import asyncio
 import discord
 import re
-import quantumrandom as qr
+import requests
 
 
 LOGGER = logging.getLogger('Shardmind.Main')
 loop = asyncio.get_event_loop()
+
+
+class QRNG(object):
+    def __init__(self):
+        self.endpoint = 'https://qrng.anu.edu.au/API/jsonI.php?length={quantity}&type=uint16'
+
+    def get_data(self, quantity):
+        response = requests.get(self.endpoint.format(quantity=quantity))
+        if not response.ok:
+            LOGGER.error(response.status_code, response.json())
+        else:
+            return response.json()['data']
 
 
 class Bot(object):
@@ -32,8 +44,12 @@ class Bot(object):
         self.commands = {
             '!help': self._help,
             '!stats': self._stats,
-            '!info': self._info
+            '!info': self._info,
+            '!rNdX': self._roll
         }
+
+    def roll_calculator(self, number, die):
+        return int(number / 65536 * die + 1)
 
     async def start(self):
         """Login"""
@@ -96,6 +112,8 @@ class Bot(object):
         await message.channel.send(msg)
 
     async def _roll(self, message):
+        """Rolls N number of X-sided dice. Can use 'kl' to keep lowest or 'kh' to keep highest.
+        Example: !r2d20kl rolls [12, 10] -> a 10 is rolled due to 'kl'"""
         keep_low = keep_high = False
         die_roll = message.content.split('!r')[-1]
 
@@ -106,24 +124,21 @@ class Bot(object):
 
         quantity, die = die_roll.split('d')
 
-        if quantity > 10:
+        if int(quantity) > 100:
             await message.channel.send(f"Whoa! {quantity} is too much! I don't have that many dice!")
             return
 
         LOGGER.info(f'Rolling {die} sided die {quantity} times...')
+        quantity = int(quantity)
+        die = int(''.join([i for i in die if i.isdigit()]))
 
-        rolls = []
-        for _ in range(int(quantity)):
-            result = int(qr.get_data()[0] / 65536 * int(die) + 1)
-            LOGGER.info(f'Rolled a {result}')
-            rolls.append(result)
+        result = QRNG().get_data(quantity)
+        rolls = [self.roll_calculator(i, die) for i in result]
+        LOGGER.info(f'Rolled {rolls}')
 
-        if keep_high:
-            await message.channel.send(f"{message.author.display_name} rolled a {max(rolls)}! {rolls}")
-            return
-
-        if keep_low:
-            await message.channel.send(f"{message.author.display_name} rolled a {min(rolls)}! {rolls}")
+        if keep_high or keep_low:
+            selected = max(rolls) if keep_high else min(rolls)
+            await message.channel.send(f"Out of {rolls}, {message.author.display_name} rolled a {selected}!")
             return
 
         await message.channel.send(f"{message.author.display_name} rolled a "
